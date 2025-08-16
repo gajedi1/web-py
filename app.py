@@ -1,95 +1,61 @@
 from flask import Flask, render_template, request, jsonify
-from google_play_scraper import search, app as playstore_app
+from google_play_scraper import search as search_playstore, app as get_app_details
 
 flask_app = Flask(__name__)
 
 def get_app_data(app_name):
     try:
-        # Search with specific parameters
-        result = search(
+        # Simple search with minimal parameters
+        results = search_playstore(
             app_name,
             lang='en',
             country='us',
-            n_hits=10,  # Get more results to find a better match
-            detail=True,  # Get detailed results
-            price='all',  # Include both free and paid apps
-            score_filtering=0  # Include all apps regardless of rating
+            n_hits=3  # Limit to 3 results for better performance
         )
         
-        if not result:
+        if not results:
             return {"error": "No results found for the app."}
         
-        # Find the best match using a scoring system
-        best_match = None
-        best_score = 0
-        
-        for app in result:
-            score = 0
-            title = app.get('title', '').lower()
-            description = app.get('description', '').lower()
-            query = app_name.lower()
-            
-            # Higher score for exact matches in title
-            if query == title:
-                score += 100
-            # Partial matches in title
-            elif query in title:
-                score += 50 + (len(query) / len(title)) * 20
-            
-            # Get the app details to access more information
+        # Get detailed information for each result
+        detailed_results = []
+        for result in results:
             try:
-                app_details = playstore_app(
-                    app['appId'],
+                app_id = result.get('appId')
+                if not app_id:
+                    continue
+                    
+                # Get detailed app information
+                details = get_app_details(
+                    app_id,
                     lang='en',
                     country='us'
                 )
                 
-                # Update description from detailed info if available
-                if 'description' in app_details:
-                    description = app_details['description'].lower()
+                detailed_results.append({
+                    'title': details.get('title', 'N/A'),
+                    'developer': details.get('developer', 'N/A'),
+                    'installs': details.get('installs', 'Not available'),
+                    'realInstalls': details.get('installs'),
+                    'score': details.get('score', 'N/A'),
+                    'ratings': details.get('ratings', 0)
+                })
                 
-                # Higher score for more installs (prioritize more popular apps)
-                installs = str(app_details.get('installs', '0+')).replace('+', '').replace(',', '')
-                if installs.isdigit():
-                    score += min(int(installs) / 10000, 50)  # Cap the install bonus at 50
+                # If we found a good match, return it immediately
+                if app_name.lower() in details.get('title', '').lower():
+                    return detailed_results[-1]
                     
             except Exception as e:
-                print(f"Error getting details for {app.get('title')}: {str(e)}")
-                
-            # Matches in description (lower weight)
-            if query in description:
-                score += 10 + (len(query) / len(description)) * 5
+                print(f"Error getting details for {result.get('title')}: {str(e)}")
+                continue
+        
+        # If no exact match found, return the first result
+        if detailed_results:
+            return detailed_results[0]
             
-            # Update best match if current app has higher score
-            if score > best_score:
-                best_score = score
-                best_match = app
-        
-        # If no good match found, use the first result with a warning
-        if not best_match and result:
-            best_match = result[0]
-            
-        app_id = best_match['appId']
-        
-        # Get full app details
-        app_details = playstore_app(
-            app_id,
-            lang='en',
-            country='us',
-            details=True  # Get more detailed information
-        )
-        
-        return {
-            "title": app_details.get('title', 'N/A'),
-            "developer": app_details.get('developer', 'N/A'),
-            "installs": app_details.get('installs', 'Not available'),
-            "realInstalls": app_details.get('realInstalls'),
-            "score": app_details.get('score', 'N/A'),
-            "ratings": app_details.get('ratings', 0) or 0
-        }
+        return {"error": "Could not retrieve app details."}
         
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"An error occurred: {str(e)}"}
 
 @flask_app.route('/')
 def index():
