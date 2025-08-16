@@ -1,66 +1,73 @@
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>App Store Analytics</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
-    <body>
-        <div class="container">
-            <h1>App Store Analytics</h1>
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Enter app name...">
-                <button onclick="searchApp()">Search</button>
-            </div>
-            <div id="result" class="result"></div>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>App Store Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>App Store Analytics</h1>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Enter app name...">
+            <button onclick="searchApp()">Search</button>
+            <button onclick="searchDeerwalk()" class="deerwalk-btn">Search Deerwalk Learning Center</button>
         </div>
-        <script>
-            async function searchApp() {
-                const appName = document.getElementById('searchInput').value.trim();
-                if (!appName) return;
-                
-                const resultDiv = document.getElementById('result');
-                resultDiv.innerHTML = '<p>Searching...</p>';
-                
-                try {
-                    const response = await fetch('/search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ app_name: appName })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
-                        return;
-                    }
-                    
-                    let html = `
-                        <h2>${data.title}</h2>
-                        <p><strong>Developer:</strong> ${data.developer}</p>
-                        <p><strong>Installs:</strong> ${data.installs}</p>
-                    `;
-                    
-                    if (data.realInstalls) {
-                        html += `<p><strong>Real Installs:</strong> ${data.realInstalls.toLocaleString()}</p>`;
-                    }
-                    
-                    html += `<p><strong>Score:</strong> ${data.score} (${data.ratings.toLocaleString()} ratings)</p>`;
-                    resultDiv.innerHTML = html;
-                    
-                } catch (error) {
-                    resultDiv.innerHTML = `<p class="error">An error occurred: ${error.message}</p>`;
-                }
-            }
+        <div id="result" class="result"></div>
+    </div>
+    <script>
+        async function searchApp() {
+            const appName = document.getElementById('searchInput').value.trim();
+            if (!appName) return;
             
-            // Allow searching with Enter key
-            document.getElementById('searchInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    searchApp();
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Searching...</p>';
+            
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ app_name: appName })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
+                    return;
                 }
-            });
-        </script>
-    </body>
-    </html>
+                
+                let html = `
+                    <h2>${data.title}</h2>
+                    <p><strong>Developer:</strong> ${data.developer}</p>
+                    <p><strong>Installs:</strong> ${data.installs}</p>
+                `;
+                
+                if (data.realInstalls) {
+                    html += `<p><strong>Real Installs:</strong> ${data.realInstalls.toLocaleString()}</p>`;
+                }
+                
+                html += `<p><strong>Score:</strong> ${data.score} (${data.ratings.toLocaleString()} ratings)</p>`;
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">An error occurred: ${error.message}</p>`;
+            }
+        }
+        
+        // Function to search for Deerwalk Learning Center
+        function searchDeerwalk() {
+            document.getElementById('searchInput').value = 'Deerwalk Learning Center';
+            searchApp();
+        }
+
+        // Allow searching with Enter key
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchApp();
+            }
+        });
+    </script>
+</body>
+</html>
