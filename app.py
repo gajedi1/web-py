@@ -1,21 +1,23 @@
 from flask import Flask, render_template, request, jsonify
-from google_play_scraper import search, app
+from google_play_scraper import search, app as playstore_app
 
-app = Flask(__name__)
+flask_app = Flask(__name__)
 
 def get_app_data(app_name):
     try:
+        # Using the correct parameter names for google-play-scraper
         result = search(
             app_name,
             lang='en',
-            country='us'
+            country='us',
+            n_hits=1
         )
         
         if not result:
             return {"error": "No results found for the app."}
             
         app_id = result[0]['appId']
-        app_details = app(
+        app_details = playstore_app(
             app_id,
             lang='en',
             country='us'
@@ -33,11 +35,11 @@ def get_app_data(app_name):
     except Exception as e:
         return {"error": str(e)}
 
-@app.route('/')
+@flask_app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/search', methods=['POST'])
+@flask_app.route('/search', methods=['POST'])
 def search_app():
     app_name = request.json.get('app_name', '')
     if not app_name:
@@ -45,4 +47,4 @@ def search_app():
     return jsonify(get_app_data(app_name))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    flask_app.run(debug=True)
