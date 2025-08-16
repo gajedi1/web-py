@@ -46,5 +46,8 @@ def search_app():
         return jsonify({"error": "App name is required"}), 400
     return jsonify(get_app_data(app_name))
 
+# For production with gunicorn
+app = flask_app
+
 if __name__ == '__main__':
     flask_app.run(debug=True)
