@@ -5,14 +5,13 @@ flask_app = Flask(__name__)
 
 def get_app_data(app_name):
     try:
-        # Search with more specific parameters
+        # Search with specific parameters
         result = search(
             app_name,
             lang='en',
             country='us',
             n_hits=10,  # Get more results to find a better match
-            detailed=True,  # Get more detailed search results
-            full_detail=True,  # Get full details in the search
+            detail=True,  # Get detailed results
             price='all',  # Include both free and paid apps
             score_filtering=0  # Include all apps regardless of rating
         )
@@ -36,16 +35,31 @@ def get_app_data(app_name):
             # Partial matches in title
             elif query in title:
                 score += 50 + (len(query) / len(title)) * 20
+            
+            # Get the app details to access more information
+            try:
+                app_details = playstore_app(
+                    app['appId'],
+                    lang='en',
+                    country='us'
+                )
+                
+                # Update description from detailed info if available
+                if 'description' in app_details:
+                    description = app_details['description'].lower()
+                
+                # Higher score for more installs (prioritize more popular apps)
+                installs = str(app_details.get('installs', '0+')).replace('+', '').replace(',', '')
+                if installs.isdigit():
+                    score += min(int(installs) / 10000, 50)  # Cap the install bonus at 50
+                    
+            except Exception as e:
+                print(f"Error getting details for {app.get('title')}: {str(e)}")
                 
             # Matches in description (lower weight)
             if query in description:
                 score += 10 + (len(query) / len(description)) * 5
-                
-            # Higher score for more installs (prioritize more popular apps)
-            installs = str(app.get('installs', '0+')).replace('+', '').replace(',', '')
-            if installs.isdigit():
-                score += min(int(installs) / 10000, 50)  # Cap the install bonus at 50
-                
+            
             # Update best match if current app has higher score
             if score > best_score:
                 best_score = score
