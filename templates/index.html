@@ -10,7 +10,9 @@
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Enter app name...">
             <button onclick="searchApp()">Search</button>
-            <button onclick="searchDeerwalk()" class="deerwalk-btn">Search Deerwalk Learning Center</button>
+            <button onclick="searchDeerwalk()" class="search-button deerwalk-button">
+            <i class="fas fa-search"></i> Search Deerwalk
+        </button>
         </div>
         <div id="result" class="result"></div>
     </div>
@@ -58,7 +60,7 @@
         
         // Function to search for Deerwalk Learning Center
         function searchDeerwalk() {
-            document.getElementById('searchInput').value = 'Deerwalk Learning Center';
+            document.getElementById('searchInput').value = 'Deerwalk';
             searchApp();
         }
 
