@@ -5,22 +5,64 @@ flask_app = Flask(__name__)
 
 def get_app_data(app_name):
     try:
-        # Using the correct parameter names for google-play-scraper
+        # Search with more specific parameters
         result = search(
             app_name,
             lang='en',
             country='us',
-            n_hits=1
+            n_hits=10,  # Get more results to find a better match
+            detailed=True,  # Get more detailed search results
+            full_detail=True,  # Get full details in the search
+            price='all',  # Include both free and paid apps
+            score_filtering=0  # Include all apps regardless of rating
         )
         
         if not result:
             return {"error": "No results found for the app."}
+        
+        # Find the best match using a scoring system
+        best_match = None
+        best_score = 0
+        
+        for app in result:
+            score = 0
+            title = app.get('title', '').lower()
+            description = app.get('description', '').lower()
+            query = app_name.lower()
             
-        app_id = result[0]['appId']
+            # Higher score for exact matches in title
+            if query == title:
+                score += 100
+            # Partial matches in title
+            elif query in title:
+                score += 50 + (len(query) / len(title)) * 20
+                
+            # Matches in description (lower weight)
+            if query in description:
+                score += 10 + (len(query) / len(description)) * 5
+                
+            # Higher score for more installs (prioritize more popular apps)
+            installs = str(app.get('installs', '0+')).replace('+', '').replace(',', '')
+            if installs.isdigit():
+                score += min(int(installs) / 10000, 50)  # Cap the install bonus at 50
+                
+            # Update best match if current app has higher score
+            if score > best_score:
+                best_score = score
+                best_match = app
+        
+        # If no good match found, use the first result with a warning
+        if not best_match and result:
+            best_match = result[0]
+            
+        app_id = best_match['appId']
+        
+        # Get full app details
         app_details = playstore_app(
             app_id,
             lang='en',
-            country='us'
+            country='us',
+            details=True  # Get more detailed information
         )
         
         return {
