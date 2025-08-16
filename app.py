@@ -6,17 +6,43 @@ flask_app = Flask(__name__)
 def get_app_data(app_name):
     try:
         print(f"Searching for '{app_name}' on Google Play Store...")
-        result = search(
+        # Search with more results to find better matches
+        results = search(
             app_name,
             lang='en',
-            country='us'
+            country='us',
+            n_hits=5  # Get more results to find the best match
         )
         
-        if not result:
+        if not results:
             return {"error": "No results found for the app."}
+        
+        # Find the best matching app by title similarity
+        best_match = None
+        best_score = -1
+        app_name_lower = app_name.lower()
+        
+        for app in results:
+            title = app.get('title', '')
+            title_lower = title.lower()
             
-        app_id = result[0]['appId']
-        print(f"Found app with ID: {app_id}")
+            # Calculate a simple matching score
+            score = 0
+            if app_name_lower == title_lower:
+                score = 100  # Exact match
+            elif app_name_lower in title_lower:
+                score = 80 + (len(app_name_lower) / len(title_lower)) * 10  # Partial match
+            
+            # If this is a better match, update best_match
+            if score > best_score:
+                best_score = score
+                best_match = app
+        
+        if not best_match:
+            best_match = results[0]  # Fallback to first result if no good match found
+            
+        app_id = best_match['appId']
+        print(f"Found best matching app: {best_match.get('title')} (ID: {app_id})")
         
         app_details = get_app_details(
             app_id,
